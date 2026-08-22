@@ -34,6 +34,8 @@
 #include "r_local.h"
 
 #include "doomstat.h"
+#include "hu_score.h"
+#include "p_local.h"
 
 
 
@@ -592,7 +594,40 @@ void R_ProjectSprite (mobj_t* thing)
 	    index = MAXLIGHTSCALE-1;
 
 	vis->colormap = spritelights[index];
-    }	
+    }
+
+    // A protected player is tinted green for everyone else. Vanilla's own
+    // invulnerability effect inverts the screen for the *owner*, which tells
+    // opponents nothing -- and they are the ones who need to know not to waste
+    // a clip on someone who cannot be hurt yet.
+    if (thing->player != NULL
+     && thing->player->powers[pw_invulnerability] > 0)
+    {
+	vis->colormap = HU_GreenColormap ();
+    }
+
+    // Remember where to float this player's name. Doing it here means the tag
+    // only appears for sprites that survived every visibility test above, so a
+    // player behind the view plane or off the side never gets a floating label.
+    // The viewer's own body is skipped, and so are corpses.
+    if (thing->player != NULL
+     && thing->player != &players[consoleplayer]
+     && thing->health > 0
+     && players[consoleplayer].mo != NULL
+     && P_CheckSight (players[consoleplayer].mo, thing))
+    {
+	// P_CheckSight is what stops the tag hanging in the air through walls.
+	// Sprites are clipped per column during R_DrawMasked, but the tag is drawn
+	// afterwards from a stored position and has no clipping of its own, so it
+	// would otherwise announce a player's location through solid geometry.
+	//
+	// Safe from here: p_sight.c consumes no P_Random and mutates no game
+	// state, so it cannot pull the lockstep simulation out of step.
+	HU_AddNameTag (thing->player - players,
+		       (vis->x1 + vis->x2) / 2 + viewwindowx,
+		       ((centeryfrac - FixedMul (vis->gzt - viewz, xscale))
+			>> FRACBITS) + viewwindowy);
+    }
 }
 
 

@@ -33,6 +33,10 @@
 // Index of the special effects (INVUL inverse) map.
 #define INVERSECOLORMAP		32
 
+// A dead player comes back on their own after this long. Vanilla waits for a
+// button press forever, which in a deathmatch just means staring at the floor.
+#define AUTO_RESPAWN_TICS	(10*TICRATE)
+
 
 //
 // Movement.
@@ -217,8 +221,18 @@ void P_DeathThink (player_t* player)
 	player->damagecount--;
 	
 
-    if (player->cmd.buttons & BT_USE)
+    // Respawn on the button as before, or on our own after AUTO_RESPAWN_TICS.
+    // deathcount is driven by the ticcmd stream, so every client counts the
+    // same tics and reaches PST_REBORN together -- doing this off wall-clock
+    // time would desynchronise the netgame.
+    player->deathcount++;
+
+    if ((player->cmd.buttons & BT_USE)
+	|| player->deathcount >= AUTO_RESPAWN_TICS)
+    {
+	player->deathcount = 0;
 	player->playerstate = PST_REBORN;
+    }
 }
 
 

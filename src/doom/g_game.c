@@ -70,6 +70,7 @@
 #include "r_sky.h"
 
 #include "g_game.h"
+#include "hu_bridge.h"
 
 #define SAVEGAMESIZE 0x2c000
 
@@ -101,6 +102,9 @@ int gamemap;
 // If non-zero, exit the level after this number of minutes.
 
 int timelimit;
+
+// If non-zero, the first player to reach this many frags ends the level.
+int fraglimit;
 
 boolean paused;
 boolean sendpause; // send a pause event next tic
@@ -572,6 +576,9 @@ void G_DoLoadLevel(void)
     }
 
     P_SetupLevel(gameepisode, gamemap, 0, gameskill);
+
+    // Map geometry for the minimap. Sent once per level, since walls do not move.
+    HU_BridgeLevel();
     displayplayer = consoleplayer; // view the guy you are playing
     gameaction = ga_nothing;
     Z_CheckHeap();
@@ -1150,8 +1157,33 @@ static const int chexpars[6] = {0, 120, 360, 480, 200, 360};
 boolean secretexit;
 extern char *pagename;
 
+boolean G_KeyIsDown(int key)
+{
+    if (key < 0 || key >= NUMKEYS)
+        return false;
+
+    return gamekeydown[key];
+}
+
+int G_PlayerFrags(int player)
+{
+    int i;
+    int score = 0;
+
+    for (i = 0; i < MAXPLAYERS; i++)
+    {
+        if (i == player)
+            score -= players[player].frags[i];
+        else
+            score += players[player].frags[i];
+    }
+
+    return score;
+}
+
 void G_ExitLevel(void)
 {
+    HU_BridgeFinish();
     secretexit = false;
     gameaction = ga_completed;
 }

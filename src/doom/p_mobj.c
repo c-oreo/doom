@@ -114,6 +114,14 @@ void P_ExplodeMissile (mobj_t* mo)
 //
 // P_XYMovement  
 //
+// How long a corpse lingers before it is removed, in tics (35 per second).
+#define CORPSE_LIFETIME		(20*TICRATE)
+
+// Brief immunity on respawn, so a player cannot be shot the instant they
+// reappear. P_DamageMobj already honours pw_invulnerability, so no new damage
+// path is needed -- only the timer.
+#define SPAWN_PROTECT_TICS	(3*TICRATE)
+
 #define STOPSPEED		0x1000
 #define FRICTION		0xe800
 
@@ -487,6 +495,30 @@ void P_MobjThinker (mobj_t* mobj)
     }
     else
     {
+	// Corpses rest here forever in vanilla: their final death state has
+	// tics == -1, so nothing ever ages them out and a busy deathmatch ends
+	// up carpeted in bodies. movecount is unused on a dead thing -- the
+	// nightmare respawn below uses it the same way -- so it doubles as the
+	// age counter.
+	// A dead player's mobj is still owned by that player until they respawn
+	// onto a fresh one -- player->mo keeps pointing at the body, and
+	// P_PlayerThink keeps reading it. Freeing it there leaves a dangling
+	// pointer whose contents differ on each machine, which desynchronises
+	// the lockstep netgame ("consistency failure") and drops players from
+	// the match. Once the player has respawned elsewhere the body is
+	// genuinely orphaned and safe to remove.
+	if ((mobj->flags & MF_CORPSE)
+	    && (mobj->player == NULL || mobj->player->mo != mobj))
+	{
+	    if (++mobj->movecount > CORPSE_LIFETIME)
+	    {
+		// Safe from inside the thinker loop: P_RemoveThinker only marks
+		// the node, and the free happens on the next pass.
+		P_RemoveMobj (mobj);
+	    }
+	    return;
+	}
+
 	// check for nightmare respawn
 	if (! (mobj->flags & MF_COUNTKILL) )
 	    return;
@@ -739,6 +771,12 @@ void P_SpawnPlayer (mapthing_t* mthing)
     if (deathmatch)
 	for (i=0 ; i<NUMCARDS ; i++)
 	    p->cards[i] = true;
+
+    // Spawn protection. Deathmatch only: in co-op it would just make players
+    // briefly immune to the monsters they are supposed to be fighting.
+    p->deathcount = 0;
+    if (deathmatch)
+	p->powers[pw_invulnerability] = SPAWN_PROTECT_TICS;
 			
     if (mthing->type-1 == consoleplayer)
     {

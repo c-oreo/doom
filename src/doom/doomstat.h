@@ -95,6 +95,10 @@ extern  int		gamemap;
 // If non-zero, exit the level after this number of minutes
 extern  int             timelimit;
 
+// If non-zero, exit the level once any player reaches this many frags.
+// Vanilla has no frag limit; this mirrors timelimit above.
+extern  int             fraglimit;
+
 // Nightmare mode flag, single player.
 extern  boolean         respawnmonsters;
 

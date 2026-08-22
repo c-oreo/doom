@@ -27,6 +27,7 @@
 
 
 #include "doomdef.h"
+#include "hu_score.h"
 #include "d_loop.h"
 
 #include "m_bbox.h"
@@ -869,6 +870,8 @@ void R_RenderPlayerView (player_t* player)
     R_ClearDrawSegs ();
     R_ClearPlanes ();
     R_ClearSprites ();
+    // Name tags are gathered by R_ProjectSprite during this frame's sprite pass.
+    HU_ClearNameTags ();
     
     // check for new console commands.
     NetUpdate ();

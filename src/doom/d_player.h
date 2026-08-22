@@ -106,6 +106,9 @@ typedef struct player_s
     
     // Frags, kills of other players.
     int			frags[MAXPLAYERS];
+
+    // Tics spent dead, for the automatic respawn.
+    int			deathcount;
     weapontype_t	readyweapon;
     
     // Is wp_nochange if not changing.

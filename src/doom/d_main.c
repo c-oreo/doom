@@ -67,6 +67,8 @@
 
 #include "am_map.h"
 #include "hu_stuff.h"
+#include "hu_score.h"
+#include "hu_bridge.h"
 #include "net_client.h"
 #include "net_dedicated.h"
 #include "net_query.h"
@@ -222,6 +224,14 @@ boolean D_Display(void)
 
     // draw the view directly
     if (gamestate == GS_LEVEL && !automapactive && gametic) R_RenderPlayerView(&players[displayplayer]);
+
+    // Score overlay sits above the world but below the messages HU_Drawer puts
+    // up, so a chat line is never hidden behind the scoreboard.
+    if (gamestate == GS_LEVEL && !automapactive && gametic) HU_DrawScore();
+
+    // Feeds the HTML overlay. Throttled inside; cheap when the page has no
+    // handlers registered.
+    if (gamestate == GS_LEVEL && gametic) HU_BridgeState();
 
     if (gamestate == GS_LEVEL && gametic) HU_Drawer();
 
@@ -1586,6 +1596,35 @@ void D_DoomMain(void)
 
     if (p) {
         timelimit = 20;
+    }
+
+    fraglimit = 0;
+
+    //!
+    // @arg <n>
+    // @category net
+    //
+    // For deathmatch: end the level once a player reaches n frags.
+    //
+
+    p = M_CheckParmWithArgs("-fraglimit", 1);
+
+    if (p) {
+        fraglimit = atoi(myargv[p + 1]);
+    }
+
+    //!
+    // @arg <names>
+    // @category net
+    //
+    // Comma-separated player names, in player order, shown on the scoreboard
+    // and above each player in the world.
+    //
+
+    p = M_CheckParmWithArgs("-playernames", 1);
+
+    if (p) {
+        HU_SetPlayerNames(myargv[p + 1]);
     }
 
     //!

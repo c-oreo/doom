@@ -60,6 +60,15 @@ boolean G_CheckDemoStatus (void);
 void G_ExitLevel (void);
 void G_SecretExitLevel (void);
 
+// A player's deathmatch score: kills of other players, less their own deaths by
+// their own hand. Same definition the status bar's FRAGS widget uses, so the
+// scoreboard, the HUD and the frag limit can never disagree.
+int G_PlayerFrags (int player);
+
+// Whether a key is currently held. gamekeydown is private to g_game.c, and the
+// scoreboard needs held-state rather than the keydown edge.
+boolean G_KeyIsDown (int key);
+
 void G_WorldDone (void);
 
 // Read current data from inputs and build a player movement command.

@@ -32,6 +32,8 @@
 #include "i_system.h"
 
 #include "am_map.h"
+#include "g_game.h"
+#include "hu_bridge.h"
 
 #include "p_local.h"
 
@@ -694,7 +696,19 @@ P_KillMobj
 	    source->player->killcount++;	
 
 	if (target->player)
+	{
 	    source->player->frags[target->player-players]++;
+
+	    // First to fraglimit ends the level, mirroring how the vanilla
+	    // timelimit calls G_ExitLevel from P_UpdateSpecials. Every client
+	    // runs this same deterministic check, so a lockstep netgame agrees
+	    // on when the match is over without any extra network traffic.
+	    if (fraglimit > 0 && deathmatch
+	     && G_PlayerFrags(source->player - players) >= fraglimit)
+	    {
+		G_ExitLevel ();
+	    }
+	}
     }
     else if (!netgame && (target->flags & MF_COUNTKILL) )
     {
@@ -705,6 +719,9 @@ P_KillMobj
     
     if (target->player)
     {
+	HU_BridgeKill(target->player - players,
+		      (source && source->player) ? (int)(source->player - players) : -1);
+
 	// count environment kills against you
 	if (!source)	
 	    target->player->frags[target->player-players]++;
